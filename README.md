@@ -205,8 +205,9 @@ In the console, click **Add container** a second time inside the same task defin
  
 >  Task CPU/memory (0.5 vCPU / 1 GB) is split across both containers combined — Fargate doesn't let you assign CPU/memory per-container unless you explicitly set limits on each. For this demo, leaving per-container limits unset lets both containers share the task-level pool.
 
-> Task definition showing both containers configured
+> Task definition showing both containers configured: Container1
 > <img src="screenshots/05-task-definition-c1.png" alt="container1 screenshot" width="700">
+> Task definition showing both containers configured: Container2
 > <img src="screenshots/05-task-definition-c2.png" alt="container2 screenshot" width="700">
 
 ### Step 11 — Create an Application Load Balancer
@@ -221,8 +222,9 @@ In the console, click **Add container** a second time inside the same task defin
 - Health check path: `/`
 
 > ALB listener and target group configuration
-> <img src="screenshots/06-alb-target-group" width="700">
-> <img src="screenshots/06-alb-active" width="700">
+> <img src="screenshots/06-alb-target-group.png" width="700">
+> Active state
+> <img src="screenshots/06-alb-active.png" width="700">
 
 ### Step 13 — Create the ECS Service
 - Cluster: `training-cluster`

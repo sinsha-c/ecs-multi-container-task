@@ -241,12 +241,12 @@ Confirm both tasks (each running `apache` + `helper`) reach the **Running** stat
 ### Step 15 — Verify via the ALB
 Open the ALB's DNS name in a browser. Refresh repeatedly — the **Hostname** value should change as the ALB load-balances between tasks.
 
-> will update `screenshots/08-alb-output.png` — app output via ALB DNS (capture two refreshes to show the hostname change)
-> <img src="screenshots/08-alb-output-1.png.png" width="700">
+> App output via ALB DNS (capture two refreshes to show the hostname change)
+> <img src="screenshots/08-alb-output-1.png" width="700">
 
 > ** After refresh - notice hostname change **
 
-> <img src="screenshots/08-alb-output-2.png.png" width="700">
+> <img src="screenshots/08-alb-output-2.png" width="700">
 ---
 
 ## Troubleshooting: Fixing Secrets Manager Access

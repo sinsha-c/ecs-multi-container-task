@@ -197,7 +197,7 @@ In the console, click **Add container** a second time inside the same task defin
 | CPU / Memory (soft/hard limits) | *(leave empty)* | Falls back to sharing the task-level 0.5 vCPU / 1 GB pool |
 | Log collection | Enable (defaults to `awslogs` → CloudWatch) | Lets you see "Helper Running" appear every 20 seconds in CloudWatch Logs — useful for confirming it's alive |
 
-> <img src="screenshots/configure-helper-sh-cmd.png" width="700">
+<img src="screenshots/configure-helper-sh-cmd.png" width="700">
  
 > **Where to find these fields:** inside the `helper` container's settings, scroll past **Environment variables** to the **Docker configuration** section — that's where **Entry point**, **Command**, and **Working directory** live (a separate section, not part of the environment variables table).
  
@@ -205,10 +205,11 @@ In the console, click **Add container** a second time inside the same task defin
  
 >  Task CPU/memory (0.5 vCPU / 1 GB) is split across both containers combined — Fargate doesn't let you assign CPU/memory per-container unless you explicitly set limits on each. For this demo, leaving per-container limits unset lets both containers share the task-level pool.
 
-> Task definition showing both containers configured: Container1
-> <img src="screenshots/05-task-definition-c1.png" alt="container1 screenshot" width="700">
-> Task definition showing both containers configured: Container2
-> <img src="screenshots/05-task-definition-c2.png" alt="container2 screenshot" width="700">
+Task definition showing both containers configured: Container1
+<img src="screenshots/05-task-definition-c1.png" alt="container1 screenshot" width="700">
+
+Task definition showing both containers configured: Container2
+<img src="screenshots/05-task-definition-c2.png" alt="container2 screenshot" width="700">
 
 ### Step 11 — Create an Application Load Balancer
 - Internet-facing
@@ -222,9 +223,10 @@ In the console, click **Add container** a second time inside the same task defin
 - Health check path: `/`
 
 > ALB listener and target group configuration
-> <img src="screenshots/06-alb-target-group.png" width="700">
+<img src="screenshots/06-alb-target-group.png" width="700">
+
 > Active state
-> <img src="screenshots/06-alb-active.png" width="700">
+<img src="screenshots/06-alb-active.png" width="700">
 
 ### Step 13 — Create the ECS Service
 - Cluster: `training-cluster`
@@ -243,12 +245,12 @@ Confirm both tasks (each running `apache` + `helper`) reach the **Running** stat
 ### Step 15 — Verify via the ALB
 Open the ALB's DNS name in a browser. Refresh repeatedly — the **Hostname** value should change as the ALB load-balances between tasks.
 
-> App output via ALB DNS (capture two refreshes to show the hostname change)
+App output via ALB DNS (capture two refreshes to show the hostname change)
 > <img src="screenshots/08-alb-output-1.png" width="700">
 
-> ** After refresh - notice hostname change **
-
+After refresh - notice hostname change
 > <img src="screenshots/08-alb-output-2.png" width="700">
+
 ---
 
 ## Troubleshooting: Fixing Secrets Manager Access

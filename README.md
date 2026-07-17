@@ -193,7 +193,7 @@ In the console, click **Add container** a second time inside the same task defin
 | CPU / Memory (soft/hard limits) | *(leave empty)* | Falls back to sharing the task-level 0.5 vCPU / 1 GB pool |
 | Log collection | Enable (defaults to `awslogs` → CloudWatch) | Lets you see "Helper Running" appear every 20 seconds in CloudWatch Logs — useful for confirming it's alive |
  
-> 💡 **Where to find the Command field, and how to enter it:**
+>  **Where to find the Command field, and how to enter it:**
 > 1. Inside the `helper` container's settings, scroll down to the **Environment variables** section (same section where you'd add key/value pairs for this container — but leave the table empty here).
 > 2. Below the environment variables table, you'll find two separate text boxes: **Entry point** and **Command**.
 > 3. Leave **Entry point** blank.
@@ -201,9 +201,9 @@ In the console, click **Add container** a second time inside the same task defin
 >
 > The console treats **every comma as a split point between array items** — so this becomes exactly 3 arguments: `sh`, `-c`, and `while true; do echo "Helper Running"; sleep 20; done` (the semicolons inside that third piece are just part of the shell script text, not additional splits). Don't add spaces after the commas or extra quotes around the whole thing — type it exactly as shown.
  
-> 💡 **Command vs Entrypoint:** leave "Entrypoint" empty here and only set "Command" — this overrides the default `CMD` of the `busybox` image without touching its `ENTRYPOINT`. If you needed to override both, you'd fill in Entrypoint too, but this image doesn't require it.
+>  **Command vs Entrypoint:** leave "Entrypoint" empty here and only set "Command" — this overrides the default `CMD` of the `busybox` image without touching its `ENTRYPOINT`. If you needed to override both, you'd fill in Entrypoint too, but this image doesn't require it.
  
-> 💡 Task CPU/memory (0.5 vCPU / 1 GB) is split across both containers combined — Fargate doesn't let you assign CPU/memory per-container unless you explicitly set limits on each. For this demo, leaving per-container limits unset lets both containers share the task-level pool.
+>  Task CPU/memory (0.5 vCPU / 1 GB) is split across both containers combined — Fargate doesn't let you assign CPU/memory per-container unless you explicitly set limits on each. For this demo, leaving per-container limits unset lets both containers share the task-level pool.
 
 > Task definition showing both containers configured
 > <img src="screenshots/05-task-definition-c1.png" alt="container1 screenshot" width="700">
@@ -265,7 +265,7 @@ If the container fails to start or can't retrieve `DB_PASSWORD`, the **Execution
 4. Name the policy (e.g., `SecretsManagerAccess`) and create it
 5. Go to ECS → Cluster → Service → **Update Service** → **Force new deployment** (no other changes needed)
 
-> 📸 `screenshots/09-iam-policy-fix.png` — inline policy attached to `ecsTaskExecutionRole`
+>  `screenshots/09-iam-policy-fix.png` — inline policy attached to `ecsTaskExecutionRole`
 
 ---
 

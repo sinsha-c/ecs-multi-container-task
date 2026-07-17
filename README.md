@@ -119,7 +119,7 @@ docker run -d -p 8080:80 \
 Visit `http://localhost:8080` and confirm the app displays the app name, password, and container hostname.
 
 > local browser output showing app name, password, and hostname
-> <img src="screenshots/dashboard.png" alt="local test screenshot" width="700">
+> <img src="screenshots/01-local-test.png" alt="local test screenshot" width="700">
 
 ### Step 6 — Create an ECR repository
 AWS Console → **ECR** → Create Repository → name it `ecs-demo` (private).
@@ -177,6 +177,10 @@ AWS Console → **ECS** → Clusters → Create Cluster
 | Port | 80 |
 | Environment variable | `APP_NAME = Training Portal` |
 | Secret | `DB_PASSWORD → ecs-db-secret` |
+
+> Configure db scret as enviroment variables
+> <img src="screenshots/configure-secret-env.png" width="700">
+
  
 **Container 2 — `helper` (sidecar)**
  
@@ -192,14 +196,10 @@ In the console, click **Add container** a second time inside the same task defin
 | Command override | `sh,-c,while true; do echo "Helper Running"; sleep 20; done` | Console command fields are comma-separated — this reproduces `sh -c "..."` as three separate arguments |
 | CPU / Memory (soft/hard limits) | *(leave empty)* | Falls back to sharing the task-level 0.5 vCPU / 1 GB pool |
 | Log collection | Enable (defaults to `awslogs` → CloudWatch) | Lets you see "Helper Running" appear every 20 seconds in CloudWatch Logs — useful for confirming it's alive |
+
+> <img src="screenshots/configure-helper-sh-cmd.png" width="700">
  
->  **Where to find the Command field, and how to enter it:**
-> 1. Inside the `helper` container's settings, scroll down to the **Environment variables** section (same section where you'd add key/value pairs for this container — but leave the table empty here).
-> 2. Below the environment variables table, you'll find two separate text boxes: **Entry point** and **Command**.
-> 3. Leave **Entry point** blank.
-> 4. In **Command**, type: `sh,-c,while true; do echo "Helper Running"; sleep 20; done`
->
-> The console treats **every comma as a split point between array items** — so this becomes exactly 3 arguments: `sh`, `-c`, and `while true; do echo "Helper Running"; sleep 20; done` (the semicolons inside that third piece are just part of the shell script text, not additional splits). Don't add spaces after the commas or extra quotes around the whole thing — type it exactly as shown.
+> **Where to find these fields:** inside the `helper` container's settings, scroll past **Environment variables** to the **Docker configuration** section — that's where **Entry point**, **Command**, and **Working directory** live (a separate section, not part of the environment variables table).
  
 >  **Command vs Entrypoint:** leave "Entrypoint" empty here and only set "Command" — this overrides the default `CMD` of the `busybox` image without touching its `ENTRYPOINT`. If you needed to override both, you'd fill in Entrypoint too, but this image doesn't require it.
  
@@ -220,7 +220,9 @@ In the console, click **Add container** a second time inside the same task defin
 - Protocol: HTTP, Port 80
 - Health check path: `/`
 
-> will update`screenshots/06-alb-target-group.png` — ALB listener and target group configuration
+> ALB listener and target group configuration
+> <img src="screenshots/06-alb-target-group" width="700">
+> <img src="screenshots/06-alb-active" width="700">
 
 ### Step 13 — Create the ECS Service
 - Cluster: `training-cluster`
@@ -232,13 +234,19 @@ In the console, click **Add container** a second time inside the same task defin
 ### Step 14 — Wait for deployment
 Confirm both tasks (each running `apache` + `helper`) reach the **Running** state.
 
-> will update`screenshots/07-service-running-tasks.png` — ECS service showing 2/2 tasks running
+> ECS service showing 2/2 tasks running
+> <img src="screenshots/07-service-running-tasks.png" width="700">
+
 
 ### Step 15 — Verify via the ALB
 Open the ALB's DNS name in a browser. Refresh repeatedly — the **Hostname** value should change as the ALB load-balances between tasks.
 
 > will update `screenshots/08-alb-output.png` — app output via ALB DNS (capture two refreshes to show the hostname change)
+> <img src="screenshots/08-alb-output-1.png.png" width="700">
 
+> ** After refresh - notice hostname change **
+
+> <img src="screenshots/08-alb-output-2.png.png" width="700">
 ---
 
 ## Troubleshooting: Fixing Secrets Manager Access
@@ -265,7 +273,38 @@ If the container fails to start or can't retrieve `DB_PASSWORD`, the **Execution
 4. Name the policy (e.g., `SecretsManagerAccess`) and create it
 5. Go to ECS → Cluster → Service → **Update Service** → **Force new deployment** (no other changes needed)
 
->  `screenshots/09-iam-policy-fix.png` — inline policy attached to `ecsTaskExecutionRole`
+>  Inline policy attached to `ecsTaskExecutionRole`
+> <img src="screenshots/09-iam-policy-fix.png" alt="inline policy attached screenshot" width="700">
+
+
+---
+
+## Real Errors Hit During This Deployment
+ 
+These are actual failures encountered while building this project, kept here because working through them is a bigger part of the learning than the happy path.
+ 
+### 1. Deployment rolled back — "circuit breaker was triggered"
+**Symptom:** CloudFormation/service banner: `Error occurred during operation 'ECS Deployment Circuit Breaker was triggered'`, cluster shows 0 running tasks.
+**Cause:** ECS kept trying to start tasks, they kept failing, and after enough consecutive failures the circuit breaker auto-rolled back the deployment to protect you from an infinite failure loop.
+**Fix:** This is a symptom, not the root cause — check **Tasks → Stopped tasks → Stopped reason** for the actual underlying error, fix that, then redeploy.
+ 
+### 2. `AccessDeniedException` on `ssm:GetParameters`
+**Symptom:**
+```
+unable to retrieve secrets from ssm: ... AccessDeniedException: ... is not authorized to perform: ssm:GetParameters on resource: arn:aws:ssm:...:parameter/ecs-db-secret
+```
+**Cause:** The `DB_PASSWORD` secret's `ValueFrom` was set to just the plain secret name (`ecs-db-secret`). ECS decides which service to call based on the string format — since it didn't start with `arn:aws:secretsmanager:...`, ECS assumed it was an **SSM Parameter Store** name instead of a Secrets Manager secret.
+**Fix:** Use the **full Secrets Manager ARN**, plus the JSON key suffix if the secret is a key-value pair:
+```
+arn:aws:secretsmanager:<region>:<account-id>:secret:ecs-db-secret-AbCdEf:DB_PASSWORD::
+```
+ 
+### 3. `helper` container exits with code 2
+**Symptom:** Container details show `Exit code: 2`, and the **Command** field shows something like `["-c \"while true; do echo 'Helper Running'; sleep 20; done\""]`.
+**Cause:** Two console gotchas stacked together:
+- **Entry point** and **Command** are separate fields under **Docker configuration** (not one combined field, and not part of Environment variables) — `sh` needs to go in Entry point, not bundled into Command.
+- Typing the whole Command value wrapped in quotes (`"..."`) bakes literal `"` characters into the string instead of just splitting on commas, producing a malformed command busybox can't execute.
+**Fix:** Entry point: `sh`. Command (comma-delimited, no wrapping quotes): `-c,while true; do echo "Helper Running"; sleep 20; done`
 
 ---
 

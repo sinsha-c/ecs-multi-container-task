@@ -8,7 +8,7 @@ A hands-on AWS ECS (Fargate) project demonstrating a multi-container task, envir
 
 ## Architecture
 
-![ECS multi-container architecture diagram](screenshots\ecs_multi_container_architecture.png)
+![ECS multi-container architecture diagram](screenshots/ecs_multi_container_architecture.png)
 
 Traffic flows from the internet through the ALB and target group to two ECS Fargate tasks. Each task runs two containers — the main `apache` container and a `helper` (BusyBox) sidecar. Both tasks retrieve `DB_PASSWORD` from AWS Secrets Manager at startup via the Task Execution Role.
 

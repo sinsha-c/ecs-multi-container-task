@@ -27,13 +27,6 @@ The app displays its configuration at runtime to prove that:
 - ECS is auto-healing (killing a task causes ECS to replace it automatically)
 - The ALB load-balances across multiple running tasks (hostname changes on refresh)
 
----
-
-## Key Concepts Covered
-
-**Task Role** vs **Execution Role** · Sidecar containers · Env vars vs Secrets Manager · Task definition versioning · Self-healing
-
----
 
 ## Prerequisites
 
@@ -42,7 +35,6 @@ The app displays its configuration at runtime to prove that:
 - Docker installed locally
 - Basic familiarity with PHP and Docker
 
----
 
 ## Project Structure
 

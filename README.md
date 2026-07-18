@@ -27,27 +27,11 @@ The app displays its configuration at runtime to prove that:
 - ECS is auto-healing (killing a task causes ECS to replace it automatically)
 - The ALB load-balances across multiple running tasks (hostname changes on refresh)
 
-### Why this project matters (portfolio angle)
-This lab demonstrates practical, production-relevant ECS skills:
-- Designing multi-container task definitions (sidecar pattern)
-- Securing secrets using IAM roles instead of hardcoded credentials
-- Understanding the difference between **Task Role** vs **Execution Role**
-- Debugging real IAM permission errors on secret retrieval
-- Deploying a containerized app behind a Load Balancer with health checks
-
 ---
 
 ## Key Concepts Covered
 
-| Concept | What it means in this project |
-|---|---|
-| **Task Role** | Grants permissions to the *application inside the container* (e.g., reading from S3, DynamoDB) |
-| **Execution Role** | Grants permissions to *ECS itself* to pull the image, retrieve secrets, and write logs |
-| **Sidecar container** | A helper container (`helper`) running alongside the main app container in the same Task |
-| **Environment variables** | Non-sensitive config (e.g., `APP_NAME`) injected at runtime, no rebuild needed |
-| **Secrets Manager** | Sensitive config (e.g., `DB_PASSWORD`) securely stored, encrypted, and injected at task startup |
-| **Task Definition versions** | Every change (e.g., new image tag) creates a new revision; old revisions remain for rollback |
-| **Self-healing** | Stopping a task manually causes ECS to automatically launch a replacement |
+**Task Role** vs **Execution Role** · Sidecar containers · Env vars vs Secrets Manager · Task definition versioning · Self-healing
 
 ---
 
@@ -336,7 +320,8 @@ arn:aws:secretsmanager:<region>:<account-id>:secret:ecs-db-secret-AbCdEf:DB_PASS
 ---
 
 ## What I Learned
-- The difference between **Task Role** and **Execution Role** and when each applies
+
+- The difference between **Task Role** and **Execution Role** and when each applies — reinforced firsthand when a `secretsmanager:GetSecretValue` AccessDenied error turned out to be an Execution Role gap (ECS retrieving the secret before the app starts), not a Task Role one (which would only matter if the app itself called AWS APIs at runtime)
 - Why hardcoding secrets (in code, Dockerfile, or plain task definition env vars) is insecure
 - How to implement the **sidecar container pattern** for auxiliary/background processes
 - How ECS Fargate + ALB provide automatic scaling, healing, and traffic distribution
@@ -344,5 +329,11 @@ arn:aws:secretsmanager:<region>:<account-id>:secret:ecs-db-secret-AbCdEf:DB_PASS
 
 ---
 
-## Tags
-`aws` `ecs` `fargate` `docker` `iam` `secrets-manager` `devops` `alb` `sidecar-pattern`
+## Author
+
+**Sinsha C**
+
+[![GitHub](https://img.shields.io/badge/GitHub-sinsha--c-181717?style=flat&logo=github&logoColor=white)](https://github.com/sinsha-c)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-sinshac-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://linkedin.com/in/sinshac)
+
+---

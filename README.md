@@ -2,7 +2,9 @@
 
 A hands-on AWS ECS (Fargate) project demonstrating a multi-container task, environment variable configuration, secure secrets injection via AWS Secrets Manager, and load-balanced service deployment.
 
-![Status](https://img.shields.io/badge/status-in--progress-yellow) ![AWS](https://img.shields.io/badge/AWS-ECS%20Fargate-orange) ![Docker](https://img.shields.io/badge/Docker-PHP%2FApache-blue)
+![Status](https://img.shields.io/badge/status-complete-brightgreen) ![AWS](https://img.shields.io/badge/AWS-ECS%20Fargate-orange) ![Docker](https://img.shields.io/badge/Docker-PHP%2FApache-blue)
+
+Built to practice production-grade ECS patterns: multi-container tasks, least-privilege IAM, and secure secrets injection — end to end, including the real errors hit along the way.
 
 ---
 
@@ -27,14 +29,12 @@ The app displays its configuration at runtime to prove that:
 - ECS is auto-healing (killing a task causes ECS to replace it automatically)
 - The ALB load-balances across multiple running tasks (hostname changes on refresh)
 
-
 ## Prerequisites
 
 - AWS account with permissions for ECS, ECR, IAM, Secrets Manager, and ELB
 - AWS CLI configured (`aws configure`)
 - Docker installed locally
 - Basic familiarity with PHP and Docker
-
 
 ## Project Structure
 
@@ -94,14 +94,14 @@ docker run -d -p 8080:80 \
 ```
 Visit `http://localhost:8080` and confirm the app displays the app name, password, and container hostname.
 
-> local browser output showing app name, password, and hostname
-> <img src="screenshots/01-local-test.png" alt="local test screenshot" width="700">
+> Local browser output showing app name, password, and hostname
+> <img src="screenshots/01-local-test.png" alt="local docker test showing app output" width="700">
 
 ### Step 6 — Create an ECR repository
 AWS Console → **ECR** → Create Repository → name it `ecs-demo` (private).
 
-> repository created, empty (before push)
-> <img src="screenshots/02-ecr-repo.png" alt="ecr-repo screenshot" width="700">
+> Repository created, empty (before push)
+> <img src="screenshots/02-ecr-repo.png" alt="empty ECR repository" width="700">
 
 ### Step 7 — Push the image to ECR
 ```bash
@@ -112,8 +112,8 @@ docker tag ecs-demo:latest <account-id>.dkr.ecr.<region>.amazonaws.com/ecs-demo:
 docker push <account-id>.dkr.ecr.<region>.amazonaws.com/ecs-demo:latest
 ```
 
-> pushed image visible in the ECR repository
-> <img src="screenshots/02-ecr-repo-after-push.png" alt="ecr-repo screenshot" width="700">
+> Pushed image visible in the ECR repository
+> <img src="screenshots/02-ecr-repo-after-push.png" alt="ECR repository after image push" width="700">
 
 ### Step 8 — Store the secret in Secrets Manager
 AWS Console → **Secrets Manager** → Store a new secret → *Other type of secret*
@@ -121,8 +121,8 @@ AWS Console → **Secrets Manager** → Store a new secret → *Other type of se
 - Value: `MyPassword@123`
 - Secret name: `ecs-db-secret`
 
-> secret created in Secrets Manager
-> <img src="screenshots/03-secrets-manager.png" alt="secrets-manager screenshot" width="700">
+> Secret created in Secrets Manager
+> <img src="screenshots/03-secrets-manager.png" alt="secret created in Secrets Manager" width="700">
 
 ### Step 9 — Create the ECS cluster
 AWS Console → **ECS** → Clusters → Create Cluster
@@ -130,7 +130,7 @@ AWS Console → **ECS** → Clusters → Create Cluster
 - Infrastructure: **AWS Fargate**
 
 > Cluster overview
-> <img src="screenshots/04-ecs-cluster.png" alt="secrets-manager screenshot" width="700">
+> <img src="screenshots/04-ecs-cluster.png" alt="ECS cluster overview" width="700">
 
 ### Step 10 — Create the Task Definition (multi-container)
 
@@ -145,7 +145,7 @@ AWS Console → **ECS** → Clusters → Create Cluster
 | Task memory | `1 GB` |
 | Task role | *(none required for this demo — no in-app AWS API calls)* |
 | Task execution role | `ecsTaskExecutionRole` |
- 
+
 **Container 1 — `apache`**
 | Field | Value |
 |---|---|
@@ -154,38 +154,31 @@ AWS Console → **ECS** → Clusters → Create Cluster
 | Environment variable | `APP_NAME = Training Portal` |
 | Secret | `DB_PASSWORD → ecs-db-secret` |
 
-> Configure db scret as enviroment variables
-> <img src="screenshots/configure-secret-env.png" width="700">
+> Configure DB secret as an environment variable
+> <img src="screenshots/configure-secret-env.png" alt="secret configured as container environment variable" width="700">
 
- 
 **Container 2 — `helper` (sidecar)**
- 
-In the console, click **Add container** a second time inside the same task definition, then fill in:
- 
+
+Click **Add container** a second time inside the same task definition, then fill in:
+
 | Field | Value | Notes |
 |---|---|---|
 | Container name | `helper` | |
-| Image URI | `busybox` | Pulled directly from Docker Hub — no ECR push needed for this one |
-| Essential container | **Off / unchecked** | Recommended for a sidecar — if `helper` crashes, the task keeps running instead of taking `apache` down with it |
+| Image URI | `busybox` | Pulled directly from Docker Hub — no ECR push needed |
+| Essential container | **Off / unchecked** | If `helper` crashes, the task keeps running instead of taking `apache` down with it |
 | Port mappings | *(leave empty)* | The helper doesn't listen on any port |
 | Environment variables | *(none)* | Not needed for this container |
-| Command override | `sh,-c,while true; do echo "Helper Running"; sleep 20; done` | Console command fields are comma-separated — this reproduces `sh -c "..."` as three separate arguments |
-| CPU / Memory (soft/hard limits) | *(leave empty)* | Falls back to sharing the task-level 0.5 vCPU / 1 GB pool |
-| Log collection | Enable (defaults to `awslogs` → CloudWatch) | Lets you see "Helper Running" appear every 20 seconds in CloudWatch Logs — useful for confirming it's alive |
+| Entry point | `sh` | Set separately from Command — see note below |
+| Command | `-c,while true; do echo "Helper Running"; sleep 20; done` | Comma-delimited, no wrapping quotes |
+| CPU / Memory | *(leave empty)* | Falls back to sharing the task-level 0.5 vCPU / 1 GB pool |
+| Log collection | Enable (`awslogs` → CloudWatch) | Confirms the sidecar is alive |
 
-<img src="screenshots/configure-helper-sh-cmd.png" width="700">
- 
-> **Where to find these fields:** inside the `helper` container's settings, scroll past **Environment variables** to the **Docker configuration** section — that's where **Entry point**, **Command**, and **Working directory** live (a separate section, not part of the environment variables table).
- 
->  **Command vs Entrypoint:** leave "Entrypoint" empty here and only set "Command" — this overrides the default `CMD` of the `busybox` image without touching its `ENTRYPOINT`. If you needed to override both, you'd fill in Entrypoint too, but this image doesn't require it.
- 
->  Task CPU/memory (0.5 vCPU / 1 GB) is split across both containers combined — Fargate doesn't let you assign CPU/memory per-container unless you explicitly set limits on each. For this demo, leaving per-container limits unset lets both containers share the task-level pool.
+<img src="screenshots/configure-helper-sh-cmd.png" alt="helper container entry point and command configuration" width="700">
 
-Task definition showing both containers configured: Container1
-<img src="screenshots/05-task-definition-c1.png" alt="container1 screenshot" width="700">
+> **Entry point vs Command:** these are separate fields under **Docker configuration**, not one combined field. Getting this wrong is a common gotcha — see [Real Errors Hit](#3-helper-container-exits-with-code-2) below for the exact failure and fix.
 
-Task definition showing both containers configured: Container2
-<img src="screenshots/05-task-definition-c2.png" alt="container2 screenshot" width="700">
+Task definition showing both containers configured:
+<img src="screenshots/05-task-definition-c1.png" alt="task definition with apache and helper containers" width="700">
 
 ### Step 11 — Create an Application Load Balancer
 - Internet-facing
@@ -199,10 +192,10 @@ Task definition showing both containers configured: Container2
 - Health check path: `/`
 
 > ALB listener and target group configuration
-<img src="screenshots/06-alb-target-group.png" width="700">
+<img src="screenshots/06-alb-target-group.png" alt="ALB and target group configuration" width="700">
 
 > Active state
-<img src="screenshots/06-alb-active.png" width="700">
+<img src="screenshots/06-alb-active.png" alt="ALB and target group active" width="700">
 
 ### Step 13 — Create the ECS Service
 - Cluster: `training-cluster`
@@ -215,17 +208,14 @@ Task definition showing both containers configured: Container2
 Confirm both tasks (each running `apache` + `helper`) reach the **Running** state.
 
 > ECS service showing 2/2 tasks running
-> <img src="screenshots/07-service-running-tasks.png" width="700">
-
+> <img src="screenshots/07-service-running-tasks.png" alt="ECS service with 2 of 2 tasks running" width="700">
 
 ### Step 15 — Verify via the ALB
 Open the ALB's DNS name in a browser. Refresh repeatedly — the **Hostname** value should change as the ALB load-balances between tasks.
 
-App output via ALB DNS (capture two refreshes to show the hostname change)
-> <img src="screenshots/08-alb-output-1.png" width="700">
-
-After refresh - notice hostname change
-> <img src="screenshots/08-alb-output-2.png" width="700">
+> App output via ALB DNS — before and after refresh (hostname changes)
+> <img src="screenshots/08-alb-output-1.png" alt="app output via ALB, first hostname" width="700">
+> <img src="screenshots/08-alb-output-2.png" alt="app output via ALB, hostname changed after refresh" width="700">
 
 ---
 
@@ -253,38 +243,29 @@ If the container fails to start or can't retrieve `DB_PASSWORD`, the **Execution
 4. Name the policy (e.g., `SecretsManagerAccess`) and create it
 5. Go to ECS → Cluster → Service → **Update Service** → **Force new deployment** (no other changes needed)
 
->  Inline policy attached to `ecsTaskExecutionRole`
-> <img src="screenshots/09-iam-policy-fix.png" alt="inline policy attached screenshot" width="700">
-
+> Inline policy attached to `ecsTaskExecutionRole`
+> <img src="screenshots/09-iam-policy-fix.png" alt="inline IAM policy attached to execution role" width="700">
 
 ---
 
 ## Real Errors Hit During This Deployment
- 
-These are actual failures encountered while building this project, kept here because working through them is a bigger part of the learning than the happy path.
- 
+
+Kept here because working through these was a bigger part of the learning than the happy path.
+
 ### 1. Deployment rolled back — "circuit breaker was triggered"
-**Symptom:** CloudFormation/service banner: `Error occurred during operation 'ECS Deployment Circuit Breaker was triggered'`, cluster shows 0 running tasks.
-**Cause:** ECS kept trying to start tasks, they kept failing, and after enough consecutive failures the circuit breaker auto-rolled back the deployment to protect you from an infinite failure loop.
-**Fix:** This is a symptom, not the root cause — check **Tasks → Stopped tasks → Stopped reason** for the actual underlying error, fix that, then redeploy.
- 
+Service banner showed `ECS Deployment Circuit Breaker was triggered` with 0 running tasks. ECS had retried failing task starts until the circuit breaker auto-rolled back the deployment. This is a symptom, not the root cause — check **Tasks → Stopped tasks → Stopped reason** for what actually failed, fix that, then redeploy.
+
 ### 2. `AccessDeniedException` on `ssm:GetParameters`
-**Symptom:**
 ```
 unable to retrieve secrets from ssm: ... AccessDeniedException: ... is not authorized to perform: ssm:GetParameters on resource: arn:aws:ssm:...:parameter/ecs-db-secret
 ```
-**Cause:** The `DB_PASSWORD` secret's `ValueFrom` was set to just the plain secret name (`ecs-db-secret`). ECS decides which service to call based on the string format — since it didn't start with `arn:aws:secretsmanager:...`, ECS assumed it was an **SSM Parameter Store** name instead of a Secrets Manager secret.
-**Fix:** Use the **full Secrets Manager ARN**, plus the JSON key suffix if the secret is a key-value pair:
+The `DB_PASSWORD` secret's `ValueFrom` was set to just the plain secret name. Because the string didn't start with `arn:aws:secretsmanager:...`, ECS assumed it was an **SSM Parameter Store** name instead of a Secrets Manager secret. **Fix:** use the full Secrets Manager ARN, plus the JSON key suffix for key-value secrets:
 ```
 arn:aws:secretsmanager:<region>:<account-id>:secret:ecs-db-secret-AbCdEf:DB_PASSWORD::
 ```
- 
+
 ### 3. `helper` container exits with code 2
-**Symptom:** Container details show `Exit code: 2`, and the **Command** field shows something like `["-c \"while true; do echo 'Helper Running'; sleep 20; done\""]`.
-**Cause:** Two console gotchas stacked together:
-- **Entry point** and **Command** are separate fields under **Docker configuration** (not one combined field, and not part of Environment variables) — `sh` needs to go in Entry point, not bundled into Command.
-- Typing the whole Command value wrapped in quotes (`"..."`) bakes literal `"` characters into the string instead of just splitting on commas, producing a malformed command busybox can't execute.
-**Fix:** Entry point: `sh`. Command (comma-delimited, no wrapping quotes): `-c,while true; do echo "Helper Running"; sleep 20; done`
+Container details showed `Exit code: 2`, with the Command field rendering as `["-c \"while true; do echo 'Helper Running'; sleep 20; done\""]`. Two console gotchas stacked: **Entry point** and **Command** are separate fields under Docker configuration — `sh` belongs in Entry point, not bundled into Command — and wrapping the whole Command value in quotes bakes literal `"` characters into the string instead of splitting cleanly on commas. **Fix:** Entry point: `sh`. Command (comma-delimited, no wrapping quotes): `-c,while true; do echo "Helper Running"; sleep 20; done`
 
 ---
 
@@ -302,12 +283,9 @@ arn:aws:secretsmanager:<region>:<account-id>:secret:ecs-db-secret-AbCdEf:DB_PASS
 ---
 
 ## Cleanup (avoid ongoing charges)
-- Delete the ECS Service → Cluster
-- Deregister old Task Definitions (optional)
-- Delete the ALB and Target Group
-- Delete the ECR repository/image
-- Delete the secret in Secrets Manager
-- Delete the inline IAM policy if no longer needed
+- Delete the ECS Service, Cluster, ALB, and Target Group
+- Delete the ECR repository/image and the Secrets Manager secret
+- Remove the inline IAM policy if no longer needed
 
 ---
 
@@ -327,5 +305,3 @@ arn:aws:secretsmanager:<region>:<account-id>:secret:ecs-db-secret-AbCdEf:DB_PASS
 
 [![GitHub](https://img.shields.io/badge/GitHub-sinsha--c-181717?style=flat&logo=github&logoColor=white)](https://github.com/sinsha-c)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-sinshac-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://linkedin.com/in/sinshac)
-
----

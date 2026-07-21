@@ -1,6 +1,6 @@
 # ECS Multi-Container Deployment with Secrets Manager & IAM Task Roles
 
-A hands-on AWS ECS (Fargate) project demonstrating a multi-container task, environment variable configuration, secure secrets injection via AWS Secrets Manager, and load-balanced service deployment.
+A hands-on AWS ECS (Fargate) project demonstrating a multi-Container deployment, environment variable configuration, secure secrets injection via AWS Secrets Manager, and load-balanced service deployment.
 
 ![Status](https://img.shields.io/badge/status-complete-brightgreen) ![AWS](https://img.shields.io/badge/AWS-ECS%20Fargate-orange) ![Docker](https://img.shields.io/badge/Docker-PHP%2FApache-blue)
 
